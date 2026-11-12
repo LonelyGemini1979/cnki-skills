@@ -1,185 +1,300 @@
 ---
 name: cnki-search
-description: 中国知网(CNKI)基础检索。使用关键词搜索学术论文，返回标题、作者、期刊、日期等结构化结果。
+description: |
+  中国知网(CNKI)基础检索技能。当用户需要搜索中文论文、中文学术文献时使用。
+  触发词：知网、CNKI、中文论文、中文文献、搜索论文、查找文献。
+  示例："帮我搜索颈椎病相关论文"、"在知网上查找MRI诊断的文献"。
 license: MIT
 author: cookjohn (Hermes adaptation)
-version: 1.0.0
+version: 2.0.0
 metadata:
   hermes:
-    tags: [cnki, 知网, 中文文献, 学术检索, 浏览器自动化]
+    tags: [cnki, 知网, 中文文献, 学术检索, 浏览器自动化, 中文论文]
     homepage: https://github.com/cookjohn/cnki-skills
     original_skill: cnki-search
+    hermes_version: ">=1.0.0"
+    required_tools: [browser_navigate, browser_console, browser_click, browser_type]
+    estimated_duration: "30-60秒"
+    requires_login: false
+    requires_captcha: true
 ---
 
-# cnki-search
+# CNKI基础检索 (Hermes版)
 
-中国知网(CNKI)基础检索。使用关键词搜索学术论文，返回标题、作者、期刊、日期等结构化结果。
+## 功能
 
-## 功能说明
+在中国知网(CNKI)上搜索学术论文，返回结构化的检索结果。
 
-本技能从Claude Code版本适配而来，使用Hermes的浏览器工具实现相同功能。
+**支持：**
+- ✅ 关键词检索（中文/英文）
+- ✅ 结果解析（标题、作者、期刊、日期、引用、下载）
+- ✅ 验证码检测
+- ✅ 分页信息
+- ⏳ 高级检索（使用 cnki-advanced-search）
+- ⏳ 文献下载（使用 cnki-download）
 
-## 使用方法
+## 使用场景
 
-直接对Hermes说出你的需求，例如：
-- "帮我搜索'颈椎病'相关论文"
-- "下载这篇论文的PDF"
-- "将这篇论文导出到Zotero"
+**触发示例：**
+```
+用户: 帮我搜索"颈椎病"相关的中文论文
+用户: 在知网上查找"人工智能"的文献
+用户: 搜索"机器学习"相关研究
+用户: CNKI上有什么关于"深度学习"的论文
+```
 
-## 技术实现
+**不触发示例：**
+```
+用户: 搜索PubMed上的论文 → 使用 pubmed-search
+用户: 下载这篇论文 → 使用 cnki-download
+用户: 导出到Zotero → 使用 cnki-export
+```
 
-**使用的Hermes工具：**
-- `browser_navigate`
-- `browser_type`
-- `browser_click`
-- `browser_console`
+## 工作流程
 
-**原始工具映射：**
-- `mcp__chrome-devtools__navigate_page` → `browser_navigate`
-- `mcp__chrome-devtools__evaluate_script` → `browser_console`
-- `mcp__chrome-devtools__click` → `browser_click`
-- `mcp__chrome-devtools__fill` → `browser_type`
+### 步骤1: 打开知网检索页
 
-## 原始文档
+```
+工具: browser_navigate
+参数: url="https://kns.cnki.net/kns8s/search"
+说明: 打开知网基础检索页面
+```
 
+### 步骤2: 执行搜索并提取结果
 
-# CNKI Basic Search
+```
+工具: browser_console
+参数: code=见下方JavaScript代码
+说明: 填充关键词、提交搜索、等待结果、提取数据
+```
 
-Search CNKI for papers using keyword(s). Returns result count and structured result list (titles, URLs, authors, journal, date) in a single call.
-
-## Arguments
-
-$ARGUMENTS contains the search keyword(s) in Chinese or English.
-
-## Steps
-
-### 1. Navigate
-
-Use `browser_navigate` → `https://kns.cnki.net/kns8s/search`
-
-### 2. Search + extract results (single evaluate_script, NO wait_for)
-
-Replace `YOUR_KEYWORDS` with actual search terms:
-
+**JavaScript代码：**
 ```javascript
 async () => {
-  const query = "YOUR_KEYWORDS";
-
-  // Wait for search input (replaces wait_for)
-  await new Promise((r, j) => {
-    let n = 0;
-    const c = () => { if (document.querySelector('input.search-input')) r(); else if (++n > 30) j('timeout'); else setTimeout(c, 500); };
-    c();
+  const query = "YOUR_KEYWORDS"; // 替换为实际关键词
+  
+  // 1. 等待搜索框加载
+  await new Promise((resolve, reject) => {
+    let attempts = 0;
+    const check = () => {
+      if (document.querySelector('input.search-input')) {
+        resolve();
+      } else if (++attempts > 30) {
+        reject(new Error('搜索框加载超时'));
+      } else {
+        setTimeout(check, 500);
+      }
+    };
+    check();
   });
-
-  // Check captcha (only if visible on screen, not hidden SDK at top:-1000000)
-  const outer = document.querySelector('#tcaptcha_transform_dy');
-  if (outer && outer.getBoundingClientRect().top >= 0) return { error: 'captcha' };
-
-  // Fill and submit (verified selectors: input.search-input, input.search-btn)
+  
+  // 2. 检查验证码
+  const captcha = document.querySelector('#tcaptcha_transform_dy');
+  if (captcha && captcha.getBoundingClientRect().top >= 0) {
+    return { 
+      error: 'captcha', 
+      message: '检测到验证码，请手动完成验证后重试' 
+    };
+  }
+  
+  // 3. 填充搜索框并提交
   const input = document.querySelector('input.search-input');
   input.value = query;
   input.dispatchEvent(new Event('input', { bubbles: true }));
-  document.querySelector('input.search-btn')?.click();
-
-  // Wait for results
-  await new Promise((r, j) => {
-    let n = 0;
-    const c = () => { if (document.body.innerText.includes('条结果')) r(); else if (++n > 30) j('timeout'); else setTimeout(c, 500); };
-    c();
+  
+  const searchBtn = document.querySelector('input.search-btn');
+  if (searchBtn) {
+    searchBtn.click();
+  } else {
+    return { error: 'no_search_button', message: '找不到搜索按钮' };
+  }
+  
+  // 4. 等待结果加载
+  await new Promise((resolve, reject) => {
+    let attempts = 0;
+    const check = () => {
+      if (document.body.innerText.includes('条结果')) {
+        resolve();
+      } else if (++attempts > 30) {
+        reject(new Error('结果加载超时'));
+      } else {
+        setTimeout(check, 500);
+      }
+    };
+    check();
   });
-
-  // Check captcha again
-  const outer2 = document.querySelector('#tcaptcha_transform_dy');
-  if (outer2 && outer2.getBoundingClientRect().top >= 0) return { error: 'captcha' };
-
-  // Extract current page results (merged parse-results)
+  
+  // 5. 再次检查验证码
+  const captcha2 = document.querySelector('#tcaptcha_transform_dy');
+  if (captcha2 && captcha2.getBoundingClientRect().top >= 0) {
+    return { 
+      error: 'captcha', 
+      message: '搜索后出现验证码，请手动完成验证' 
+    };
+  }
+  
+  // 6. 提取结果
   const rows = document.querySelectorAll('.result-table-list tbody tr');
   const checkboxes = document.querySelectorAll('.result-table-list tbody input.cbItem');
-  const results = Array.from(rows).map((row, i) => {
+  
+  const results = Array.from(rows).map((row, index) => {
     const titleLink = row.querySelector('td.name a.fz14');
-    const authors = Array.from(row.querySelectorAll('td.author a.KnowledgeNetLink') || []).map(a => a.innerText?.trim());
-    const journal = row.querySelector('td.source a')?.innerText?.trim() || '';
-    const date = row.querySelector('td.date')?.innerText?.trim() || '';
-    const citations = row.querySelector('td.quote')?.innerText?.trim() || '';
-    const downloads = row.querySelector('td.download')?.innerText?.trim() || '';
+    const authors = Array.from(
+      row.querySelectorAll('td.author a.KnowledgeNetLink') || []
+    ).map(a => a.innerText?.trim()).filter(Boolean);
+    
     return {
-      n: i + 1,
+      index: index + 1,
       title: titleLink?.innerText?.trim() || '',
-      href: titleLink?.href || '',
-      exportId: checkboxes[i]?.value || '',
+      url: titleLink?.href || '',
+      exportId: checkboxes[index]?.value || '',
       authors: authors.join('; '),
-      journal,
-      date,
-      citations,
-      downloads
+      journal: row.querySelector('td.source a')?.innerText?.trim() || '',
+      date: row.querySelector('td.date')?.innerText?.trim() || '',
+      citations: row.querySelector('td.quote')?.innerText?.trim() || '0',
+      downloads: row.querySelector('td.download')?.innerText?.trim() || '0'
     };
   });
-
+  
+  // 7. 提取分页信息
+  const totalText = document.querySelector('.pagerTitleCell')?.innerText || '';
+  const totalMatch = totalText.match(/([\d,]+)/);
+  const total = totalMatch ? totalMatch[1] : '0';
+  
+  const pageText = document.querySelector('.countPageMark')?.innerText || '1/1';
+  
   return {
-    query,
-    total: document.querySelector('.pagerTitleCell')?.innerText?.match(/([\d,]+)/)?.[1] || '0',
-    page: document.querySelector('.countPageMark')?.innerText || '1/1',
-    results
+    success: true,
+    query: query,
+    total: total,
+    page: pageText,
+    count: results.length,
+    results: results
   };
 }
 ```
 
-### 3. Report
+### 步骤3: 格式化输出
 
-Present results as a numbered list:
+将结果格式化为易读的列表：
 
 ```
-Searched CNKI for "$ARGUMENTS": found {total} results (page {page}).
+在知网搜索"颈椎病"，共找到 12,345 条结果（第 1/300 页）
 
-1. {title}
-   Authors: {authors} | Journal: {journal} | Date: {date}
-   Citations: {citations} | Downloads: {downloads}
+1. 颈椎病MRI诊断的临床研究
+   作者: 张三; 李四
+   期刊: 中华骨科杂志 | 日期: 2024-01-15
+   引用: 45 | 下载: 1,234
 
-2. ...
+2. 脊髓型颈椎病的手术治疗进展
+   作者: 王五; 赵六
+   期刊: 中国脊柱脊髓杂志 | 日期: 2023-12-20
+   引用: 32 | 下载: 987
+
+...
 ```
 
-### 4. Follow-up: navigate to a paper
+## 错误处理
 
-When the user wants to open or download a specific paper, use `navigate_page` with the result's `href` URL directly — do NOT click the link (clicking opens a new tab and wastes 3 extra tool calls for tab management).
+### 验证码
 
-## Captcha detection
+**检测：**
+```javascript
+const captcha = document.querySelector('#tcaptcha_transform_dy');
+if (captcha && captcha.getBoundingClientRect().top >= 0) {
+  // 验证码可见
+}
+```
 
-Check `#tcaptcha_transform_dy` element's `getBoundingClientRect().top >= 0`.
-Tencent captcha SDK preloads DOM at `top: -1000000px` (off-screen, not active).
-Only return `error: 'captcha'` when `top >= 0` (actually visible to user).
+**处理：**
+```
+返回: { error: 'captcha', message: '请手动完成验证' }
+操作: 暂停执行，提示用户在浏览器中完成滑块验证
+```
 
-## Verified selectors
+### 搜索超时
 
-| Element | Selector | Notes |
-|---------|----------|-------|
-| Search input | `input.search-input` | id=`txt_search`, placeholder "中文文献、外文文献" |
-| Search button | `input.search-btn` | type="button" |
-| Result count | `.pagerTitleCell` | text "共找到 X 条结果" |
-| Page indicator | `.countPageMark` | text "1/300" |
-| Result rows | `.result-table-list tbody tr` | Each row = one paper |
-| Title link | `td.name a.fz14` | Paper title with href |
-| Authors | `td.author a.KnowledgeNetLink` | Author name links |
-| Journal | `td.source a` | Journal/source link |
-| Date | `td.date` | Publication date text |
-| Citations | `td.quote` | Citation count |
-| Downloads | `td.download` | Download count |
+**处理：**
+```
+返回: { error: 'timeout', message: '搜索超时，请重试' }
+建议: 检查网络连接，或稍后重试
+```
 
-## Batch export to Zotero
+### 无结果
 
-When user wants to save results to Zotero, use batch export directly from the results page — **do NOT navigate to each detail page**. The `exportId` in results equals the detail page's `#export-id`. Call `cnki-export` skill with batch mode (Step 1B). See cnki-export SKILL.md for details.
+**处理：**
+```
+返回: { success: true, total: '0', results: [] }
+建议: 尝试更宽泛的关键词，或使用高级检索
+```
 
-## Tool calls: 2 (navigate + evaluate_script)
+## 后续操作
 
+搜索完成后，用户可能需要：
+
+1. **查看详情** → 使用 `cnki-paper-detail` 技能
+2. **下载全文** → 使用 `cnki-download` 技能
+3. **导出引用** → 使用 `cnki-export` 技能
+4. **下一页** → 使用 `cnki-navigate-pages` 技能
+5. **精确筛选** → 使用 `cnki-advanced-search` 技能
+
+## 技术细节
+
+### 选择器验证
+
+| 元素 | CSS选择器 | 说明 |
+|------|----------|------|
+| 搜索框 | `input.search-input` | id=`txt_search` |
+| 搜索按钮 | `input.search-btn` | type="button" |
+| 结果行 | `.result-table-list tbody tr` | 每行一篇论文 |
+| 标题链接 | `td.name a.fz14` | 包含论文URL |
+| 作者 | `td.author a.KnowledgeNetLink` | 作者链接 |
+| 期刊 | `td.source a` | 期刊名称 |
+| 日期 | `td.date` | 发表日期 |
+| 引用 | `td.quote` | 被引次数 |
+| 下载 | `td.download` | 下载次数 |
+| 总数 | `.pagerTitleCell` | "共找到 X 条结果" |
+| 页码 | `.countPageMark` | "1/300" |
+
+### 验证码检测原理
+
+知网使用腾讯滑块验证码，SDK会预加载DOM但隐藏在屏幕外：
+- 隐藏时: `top: -1000000px`
+- 显示时: `top >= 0`
+
+因此检测 `getBoundingClientRect().top >= 0` 可准确判断验证码是否真正显示。
 
 ## 注意事项
 
-1. **验证码处理**: 知网使用腾讯滑块验证码，需要手动完成
-2. **登录状态**: 某些功能需要知网账号登录
-3. **访问频率**: 建议操作间隔3-5秒，避免触发反爬
-4. **浏览器**: 确保Hermes浏览器工具已启动
+1. **访问频率**: 建议每次搜索间隔3-5秒，避免触发反爬
+2. **验证码**: 频繁搜索会触发验证码，需手动完成
+3. **登录状态**: 基础检索无需登录，下载需要登录
+4. **结果数量**: 每页默认显示20条结果
+5. **超时设置**: 搜索和结果加载超时时间为15秒
 
-## 参考链接
+## 相关技能
 
-- 原始技能: https://github.com/cookjohn/cnki-skills/tree/main/skills/cnki-search
+- `cnki-advanced-search`: 高级检索（多字段筛选）
+- `cnki-paper-detail`: 获取论文详细信息
+- `cnki-download`: 下载论文PDF/CAJ
+- `cnki-export`: 导出到Zotero/RIS
+- `cnki-navigate-pages`: 翻页和排序
+
+## 更新日志
+
+### v2.0.0 (2026-11-13)
+- 完全重写为Hermes风格
+- 添加详细的触发示例
+- 完善错误处理
+- 添加技术细节说明
+- 优化JavaScript代码
+
+### v1.0.0 (2026-11-13)
+- 初始Hermes适配版本
+- 简单替换工具名称
+
+## 参考
+
+- 原始技能: https://github.com/cookjohn/cnki-skills
+- 知网帮助: https://help.cnki.net
 - Hermes文档: https://hermes-agent.nousresearch.com/docs
