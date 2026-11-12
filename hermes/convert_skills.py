@@ -155,7 +155,7 @@ metadata:
 """
     
     # 写入Hermes版本
-    output_path = Path(f'hermes/skills/{skill_name}/SKILL.md')
+    output_path = Path(f"skills/{skill_name}/SKILL.md")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(hermes_content, encoding='utf-8')
     

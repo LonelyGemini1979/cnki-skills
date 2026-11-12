@@ -1,148 +1,185 @@
 ---
 name: cnki-search
-description: 中国知网(CNKI)文献检索工具。使用浏览器自动化搜索中国知网学术论文，支持关键词检索、高级检索、论文详情获取、PDF/CAJ下载。适用于中文医学文献、中文学术论文检索场景。
+description: 中国知网(CNKI)基础检索。使用关键词搜索学术论文，返回标题、作者、期刊、日期等结构化结果。
 license: MIT
 author: cookjohn (Hermes adaptation)
 version: 1.0.0
 metadata:
   hermes:
-    tags: [cnki, 知网, 中文文献, 学术检索, 浏览器自动化, 中国知网]
+    tags: [cnki, 知网, 中文文献, 学术检索, 浏览器自动化]
     homepage: https://github.com/cookjohn/cnki-skills
+    original_skill: cnki-search
 ---
 
-# 中国知网(CNKI)文献检索工具
+# cnki-search
 
-通过浏览器自动化访问中国知网，检索和下载中文学术文献。
+中国知网(CNKI)基础检索。使用关键词搜索学术论文，返回标题、作者、期刊、日期等结构化结果。
 
-## 功能特性
+## 功能说明
 
-- **文献检索**: 关键词搜索、高级检索（多字段组合）
-- **结果解析**: 提取论文标题、作者、期刊、摘要、下载链接
-- **论文详情**: 获取完整论文信息、参考文献、引证文献
-- **文献下载**: 下载PDF/CAJ格式全文（需知网账号）
-- **期刊检索**: 按期刊名称检索、期刊导航
-- **数据导出**: 导出检索结果到CSV/JSON
-
-## 使用前准备
-
-### 1. 启动浏览器
-
-CNKI skill使用Hermes的浏览器工具。确保浏览器已启动：
-
-```bash
-# 启动camofox浏览器（如果未运行）
-hermes browser start
-```
-
-### 2. 登录知网（可选）
-
-如需下载全文，需要先在浏览器中登录知网账号：
-- 打开 https://www.cnki.net
-- 点击"登录"并输入账号密码
-- 登录状态会在浏览器会话中保持
+本技能从Claude Code版本适配而来，使用Hermes的浏览器工具实现相同功能。
 
 ## 使用方法
 
-### 基础检索
-
-```
-用户: 帮我搜索"颈椎病"相关的中文论文
-助手: 我将使用CNKI检索"颈椎病"相关文献...
-```
-
-### 高级检索
-
-支持多字段组合检索：
-- 主题词检索
-- 作者检索
-- 期刊名称检索
-- 发表时间范围
-- 文献类型筛选（期刊、博硕、会议）
-
-### 获取论文详情
-
-```
-用户: 获取这篇论文的详细信息
-助手: 我将打开论文详情页，提取完整信息...
-```
-
-### 下载全文
-
-```
-用户: 下载这篇论文的PDF
-助手: 我将尝试下载PDF全文...
-```
-
-## 工作流程
-
-1. **打开知网**: 导航到 https://kns.cnki.net/kns8s/defaultresult/index
-2. **输入关键词**: 在搜索框输入检索词
-3. **执行搜索**: 点击搜索按钮
-4. **解析结果**: 提取论文列表信息
-5. **获取详情**: 点击论文标题进入详情页
-6. **下载全文**: 点击PDF/CAJ下载链接
-
-## 注意事项
-
-### 反爬虫机制
-
-知网有反爬虫机制，可能会遇到：
-- **腾讯滑块验证码**: 需要手动完成验证
-- **访问频率限制**: 建议每次搜索间隔3-5秒
-- **IP限制**: 频繁访问可能导致临时封禁
-
-### 下载权限
-
-- **免费论文**: 部分论文可直接下载
-- **付费论文**: 需要知网账号或机构订阅
-- **CAJ格式**: 部分论文仅提供CAJ格式，需要CAJViewer打开
-
-### 浏览器要求
-
-- 使用Chrome/Firefox浏览器
-- 启用JavaScript
-- 允许弹出窗口（下载时）
+直接对Hermes说出你的需求，例如：
+- "帮我搜索'颈椎病'相关论文"
+- "下载这篇论文的PDF"
+- "将这篇论文导出到Zotero"
 
 ## 技术实现
 
-CNKI skill通过Hermes的浏览器工具实现：
-- `browser_navigate`: 打开网页
-- `browser_snapshot`: 获取页面结构
-- `browser_type`: 输入文本
-- `browser_click`: 点击元素
-- `browser_console`: 执行JavaScript提取数据
+**使用的Hermes工具：**
+- `browser_navigate`
+- `browser_type`
+- `browser_click`
+- `browser_console`
 
-## 常见问题
+**原始工具映射：**
+- `mcp__chrome-devtools__navigate_page` → `browser_navigate`
+- `mcp__chrome-devtools__evaluate_script` → `browser_console`
+- `mcp__chrome-devtools__click` → `browser_click`
+- `mcp__chrome-devtools__fill` → `browser_type`
 
-### Q: 遇到验证码怎么办？
-A: 知网使用腾讯滑块验证码，需要手动完成。脚本会暂停并提示用户操作。
+## 原始文档
 
-### Q: 下载失败怎么办？
-A: 检查是否已登录知网账号，或该论文是否需要付费。
 
-### Q: 搜索结果为空？
-A: 尝试更换关键词，或使用高级检索扩大范围。
+# CNKI Basic Search
 
-### Q: 如何批量下载？
-A: 目前支持单篇下载，批量下载需要逐篇操作。
+Search CNKI for papers using keyword(s). Returns result count and structured result list (titles, URLs, authors, journal, date) in a single call.
 
-## 限制说明
+## Arguments
 
-- 不支持绕过知网付费墙
-- 不支持自动破解验证码
-- 下载速度受知网服务器限制
-- 部分功能需要知网账号权限
+$ARGUMENTS contains the search keyword(s) in Chinese or English.
+
+## Steps
+
+### 1. Navigate
+
+Use `browser_navigate` → `https://kns.cnki.net/kns8s/search`
+
+### 2. Search + extract results (single evaluate_script, NO wait_for)
+
+Replace `YOUR_KEYWORDS` with actual search terms:
+
+```javascript
+async () => {
+  const query = "YOUR_KEYWORDS";
+
+  // Wait for search input (replaces wait_for)
+  await new Promise((r, j) => {
+    let n = 0;
+    const c = () => { if (document.querySelector('input.search-input')) r(); else if (++n > 30) j('timeout'); else setTimeout(c, 500); };
+    c();
+  });
+
+  // Check captcha (only if visible on screen, not hidden SDK at top:-1000000)
+  const outer = document.querySelector('#tcaptcha_transform_dy');
+  if (outer && outer.getBoundingClientRect().top >= 0) return { error: 'captcha' };
+
+  // Fill and submit (verified selectors: input.search-input, input.search-btn)
+  const input = document.querySelector('input.search-input');
+  input.value = query;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelector('input.search-btn')?.click();
+
+  // Wait for results
+  await new Promise((r, j) => {
+    let n = 0;
+    const c = () => { if (document.body.innerText.includes('条结果')) r(); else if (++n > 30) j('timeout'); else setTimeout(c, 500); };
+    c();
+  });
+
+  // Check captcha again
+  const outer2 = document.querySelector('#tcaptcha_transform_dy');
+  if (outer2 && outer2.getBoundingClientRect().top >= 0) return { error: 'captcha' };
+
+  // Extract current page results (merged parse-results)
+  const rows = document.querySelectorAll('.result-table-list tbody tr');
+  const checkboxes = document.querySelectorAll('.result-table-list tbody input.cbItem');
+  const results = Array.from(rows).map((row, i) => {
+    const titleLink = row.querySelector('td.name a.fz14');
+    const authors = Array.from(row.querySelectorAll('td.author a.KnowledgeNetLink') || []).map(a => a.innerText?.trim());
+    const journal = row.querySelector('td.source a')?.innerText?.trim() || '';
+    const date = row.querySelector('td.date')?.innerText?.trim() || '';
+    const citations = row.querySelector('td.quote')?.innerText?.trim() || '';
+    const downloads = row.querySelector('td.download')?.innerText?.trim() || '';
+    return {
+      n: i + 1,
+      title: titleLink?.innerText?.trim() || '',
+      href: titleLink?.href || '',
+      exportId: checkboxes[i]?.value || '',
+      authors: authors.join('; '),
+      journal,
+      date,
+      citations,
+      downloads
+    };
+  });
+
+  return {
+    query,
+    total: document.querySelector('.pagerTitleCell')?.innerText?.match(/([\d,]+)/)?.[1] || '0',
+    page: document.querySelector('.countPageMark')?.innerText || '1/1',
+    results
+  };
+}
+```
+
+### 3. Report
+
+Present results as a numbered list:
+
+```
+Searched CNKI for "$ARGUMENTS": found {total} results (page {page}).
+
+1. {title}
+   Authors: {authors} | Journal: {journal} | Date: {date}
+   Citations: {citations} | Downloads: {downloads}
+
+2. ...
+```
+
+### 4. Follow-up: navigate to a paper
+
+When the user wants to open or download a specific paper, use `navigate_page` with the result's `href` URL directly — do NOT click the link (clicking opens a new tab and wastes 3 extra tool calls for tab management).
+
+## Captcha detection
+
+Check `#tcaptcha_transform_dy` element's `getBoundingClientRect().top >= 0`.
+Tencent captcha SDK preloads DOM at `top: -1000000px` (off-screen, not active).
+Only return `error: 'captcha'` when `top >= 0` (actually visible to user).
+
+## Verified selectors
+
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Search input | `input.search-input` | id=`txt_search`, placeholder "中文文献、外文文献" |
+| Search button | `input.search-btn` | type="button" |
+| Result count | `.pagerTitleCell` | text "共找到 X 条结果" |
+| Page indicator | `.countPageMark` | text "1/300" |
+| Result rows | `.result-table-list tbody tr` | Each row = one paper |
+| Title link | `td.name a.fz14` | Paper title with href |
+| Authors | `td.author a.KnowledgeNetLink` | Author name links |
+| Journal | `td.source a` | Journal/source link |
+| Date | `td.date` | Publication date text |
+| Citations | `td.quote` | Citation count |
+| Downloads | `td.download` | Download count |
+
+## Batch export to Zotero
+
+When user wants to save results to Zotero, use batch export directly from the results page — **do NOT navigate to each detail page**. The `exportId` in results equals the detail page's `#export-id`. Call `cnki-export` skill with batch mode (Step 1B). See cnki-export SKILL.md for details.
+
+## Tool calls: 2 (navigate + evaluate_script)
+
+
+## 注意事项
+
+1. **验证码处理**: 知网使用腾讯滑块验证码，需要手动完成
+2. **登录状态**: 某些功能需要知网账号登录
+3. **访问频率**: 建议操作间隔3-5秒，避免触发反爬
+4. **浏览器**: 确保Hermes浏览器工具已启动
 
 ## 参考链接
 
-- 知网官网: https://www.cnki.net
-- 知网检索: https://kns.cnki.net
-- 原始项目: https://github.com/cookjohn/cnki-skills
-
-## 更新日志
-
-### v1.0.0 (2026-11-13)
-- 初始Hermes适配版本
-- 支持基础检索功能
-- 支持论文详情获取
-- 支持PDF/CAJ下载
+- 原始技能: https://github.com/cookjohn/cnki-skills/tree/main/skills/cnki-search
+- Hermes文档: https://hermes-agent.nousresearch.com/docs
